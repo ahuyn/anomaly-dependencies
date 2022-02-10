@@ -1,4 +1,4 @@
--- Linear interpolation library
+-- LAgrange inteRPolation library
 -- algorithm by peete-q
 -- Migrated to Anomaly by Asshall
 -- Modified and modularized by arti
@@ -115,8 +115,6 @@ function str_to_coords(str)
     }
     buffer = str_explode(str, ":")
     
---         weapon_coords[name]["x"] = str_explode_num(buffer[1], ",")
---         weapon_coords[name]["y"] = str_explode_num(buffer[2], ",")
     coords["x"] = str_explode_num(buffer[1], ",")
     coords["y"] = str_explode_num(buffer[2], ",")
     if #coords["x"] ~= #coords["y"] then
