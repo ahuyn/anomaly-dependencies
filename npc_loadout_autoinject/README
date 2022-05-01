@@ -1,0 +1,21 @@
+Provides injector for npc loadout configs.
+
+How loadouts work (READ CAREFULLY)
+NPC loadouts are routed based on:
+- Community (Faction)
+- Rank
+- Slot (Primary, Secondary, Extra)
+
+These sink down to sections that contain a ton of weapons - e.g. [isg_primary] or [killer_veteran_primary]
+
+What this tool allows you to do is to add weapons or define new configs for these sections.
+
+There is no support (yet!) for changing the routing to new custom sections based on squad rank / npc visual / other stuff. Use the existing sections.
+
+How to use:
+
+There are two importers - npc_importer and wep_importer. Both are needed in order to add weapons.
+
+npc_importer imports a ton of sections. Sample is provided with comments.
+
+wep_importer is a list of weapons. Sample is provided with comments.
