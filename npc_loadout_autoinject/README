@@ -1,16 +1,22 @@
 Provides injector for npc loadout configs.
 
 How loadouts work (READ CAREFULLY)
-NPC loadouts are routed based on:
-- Community (Faction)
-- Rank
-- Slot (Primary, Secondary, Extra)
+NPC loadouts are routed based on various factors:
 
-These sink down to sections that contain a ton of weapons - e.g. [isg_primary] or [killer_veteran_primary]
+; How it works
+; When an npc spawn in the Zone, a loadout will be decided and spawned on him based on many factors:
+; 1. Script will check [loadouts_per_squad] first to see if NPC's squad section name has a defined loadout
+; 2. if not found, then it will [loadouts_per_name] to see if NPC's section name has a defined loadout
+; 3. if not found, then it will [loadouts_per_visual] to see if NPC's model has a defined loadout
+; 4. if not found, then it will check NPC's rank and community loadout [loadout_"community"_"rank"]
+; 5. if not found, then it will check NPC's community loadout only [loadout_"community"]
+; 6. if not found, then it will check the default loadout [loadout_default]
 
-What this tool allows you to do is to add weapons or define new configs for these sections.
+Under these sections are keys for primary, secondary and extra that map to a weapon pool.
 
-There is no support (yet!) for changing the routing to new custom sections based on squad rank / npc visual / other stuff. Use the existing sections.
+What this tool allows you to do is to add weapons to or entirely replace these pools.
+
+To change the routing, it is recommended to use the vanilla system to add mappings to weapon pools.
 
 How to use:
 
