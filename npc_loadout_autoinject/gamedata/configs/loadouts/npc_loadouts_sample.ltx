@@ -1,0 +1,9 @@
+; section name can be anything as long as it is unique
+[800_ruble_vssk]
+; this is the section we want to append to, maps to a key under loadout primary/secondary/extras
+loadout_sec = monolith_gauss_primary
+; this is the section of weapons in wep_importer we want to add
+weapons_sec = vssk
+; !!!! This will override vanilla loadouts in npc_loadouts.ltx. Use if you want to completely redefine what an NPC class can use. 
+; If ANY of these sections passes this as true, it will apply for this loadout section. 
+ignore_vanilla = false
