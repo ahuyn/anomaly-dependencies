@@ -11,7 +11,7 @@ function preload()
         local weapons = ini_npc_loadouts:r_string_ex(section, "weapons_sec")
         -- skip if loadout/weapons not defined (bad section)
         if not loadout or not weapons then return end
-        if not ini:section_exist(loadout) then return end
+        -- if not ini:section_exist(loadout) then return end
         if not ini_wep_loadouts:section_exist(weapons) then return end
         if not custom_loadouts[loadout] then custom_loadouts[loadout] = {} end
         if not custom_loadouts.meta[loadout] then custom_loadouts.meta[loadout] = {} end
@@ -64,6 +64,22 @@ function xrs_rnd_npc_loadout.create_item_on_npc(se_npc, squad_name, comm, rank, 
     if pick > #custom_loadouts[slot] then
         CreateItem(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
     else
+        -- repick based on chances
+        if #custom_loadouts[slot] > 1 then
+            pick = nil
+            iterations = 0
+            max_iter = 10
+            while not pick and iterations < max_iter do
+                local candidate = math.random(#custom_loadouts[slot])
+                if math.random(100) <= custom_loadouts[slot][candidate].chance then
+                    pick = candidate
+                    break
+                end
+                iterations = iteration + 1
+            end
+            if not pick then pick = math.random(#custom_loadouts[slot]) end
+        end
+
         -- Give it to NPC based on data
         local section = custom_loadouts[slot][pick].sec
         local ammo_typ = custom_loadouts[slot][pick].ammo_type
