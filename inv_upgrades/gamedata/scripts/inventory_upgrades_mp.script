@@ -105,7 +105,7 @@ function ui_inventory.UIInventory:RMode_OnRepair()
 	self.message_box:ShowDialog(true)
 end
 
-OnRepair = ui_inventory.UIInventory.RMode_OnRepair
+OnRepair = ui_inventory.UIInventory.RMode_RepairYes
 
 function ui_inventory.UIInventory:RMode_RepairYes()
 	OnRepair(self)
