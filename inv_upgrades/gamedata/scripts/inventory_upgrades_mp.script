@@ -72,3 +72,45 @@ function inventory_upgrades.effect_repair_item( item_name, item_condition)
 		end
 	end
 end
+
+local repair_id
+
+function ui_inventory.UIInventory:RMode_OnRepair()
+	self:Print(nil, "RMode_OnRepair")
+	
+	if (not self.upgr.id) then
+		return
+	end
+	
+	local obj = level.object_by_id(self.upgr.id)
+	if (not obj) then
+		return
+	end
+	
+	local sec = obj:section()
+	local cond = obj:condition()
+	repair_id = self.upgr.id
+	local can_afford = inventory_upgrades.can_afford_repair_item(sec , cond)
+	local str = inventory_upgrades.question_repair_item( sec, cond, true )
+	if (str == nil) then
+		str = game.translate_string("st_upgr_cant_do")
+	end
+	
+	if can_afford then
+		self.message_box:InitMessageBox("message_box_yes_no")
+	else
+		self.message_box:InitMessageBox("message_box_ok")
+	end
+	self.message_box:SetText(str)
+	self.message_box:ShowDialog(true)
+end
+
+OnRepair = ui_inventory.UIInventory.RMode_OnRepair
+
+function ui_inventory.UIInventory:RMode_RepairYes()
+	OnRepair(self)
+	repair_id = nil
+end
+function get_repair_id()
+	return repair_id
+end
