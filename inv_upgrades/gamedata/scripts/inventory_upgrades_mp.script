@@ -49,7 +49,7 @@ function inventory_upgrades.effect_repair_item( item_name, item_condition)
 	local price = how_much_repair( item_name, item_condition )
 	db.actor:give_money(-price)
 
-	if (item_name == "wpn_binoc") or (ui_options.get("gameplay/general/mechanic_feature") ~= true) then 
+	if (ui_options.get("gameplay/general/mechanic_feature") ~= true) then 
 		return
 	end
 
@@ -65,6 +65,12 @@ function inventory_upgrades.effect_repair_item( item_name, item_condition)
 	db.actor:iterate_inventory(itr,db.actor)
 
 	if (item) then
+	
+		local cls = item:clsid()
+		if (cls == "WP_BINOC") then 
+			return
+		end
+	
 		local victim = get_speaker()
 		if (victim) then
 			local damage_factor = 1.0 - clamp(item_condition, 0.0, 1.0)
