@@ -1,0 +1,157 @@
+local ini_custom_repair = ini_file("repair\\importer.ltx")
+
+-- Simple injector to replace min condition, add condition repair type and repair only, so we don't need to conflict over LTX files
+
+function get_prop(section, prop, type)
+    type = type or 0
+    local ini_to_check = ini_custom_repair:section_exist(section) and ini_custom_repair or ini_sys
+    if type == 0 then
+        return ini_to_check:r_string_ex(section, prop) or ""
+    elseif type == 1 then
+        return ini_to_check:r_bool_ex(section, prop) or false
+    else
+        return ini_to_check:r_float_ex(section, prop) or 0
+    end
+end
+
+-- Override props from LTX
+function item_repair.UIRepair:Reset(obj,section)
+	self.section = section
+	self.obj = obj
+	
+	-- Settings
+	self.repair_frame      = ini_sys:r_string_ex(section,"repair_ui") or "ui_itm_repair_1"
+	self.use_condition     = ini_sys:r_bool_ex(section,"use_condition") or false
+	self.min_condition     = get_prop(section,"repair_min_condition", 2) or 0
+	self.max_condition     = ini_sys:r_float_ex(section,"repair_max_condition") or 0
+	self.add_condition     = get_prop(section,"repair_add_condition", 2) or 0
+	self.part_bonus        = get_prop(section,"repair_part_bonus", 2) or 0
+	self.use_parts         = ini_sys:r_bool_ex(section,"repair_use_parts") or false
+	self.repair_type       = ini_sys:r_string_ex(section,"repair_type") or "all" 
+	self.repair_only       = parse_list(ini_sys,section,"repair_only",true)
+	self.parts_multi       = ini_sys:r_float_ex(section,"repair_parts_multi") or 1
+	self.parts_sections    = parse_list(ini_sys,section,"repair_parts_sections",true)
+	self.parts_match       = get_prop(section,"repair_parts_match",1)
+	self.use_actor_effects = ini_sys:r_bool_ex(section,"repair_use_actor_effects",false)
+	self.con_val           = {}
+	
+	-- Elements
+	self.CC[2]:Reset()
+	self.con_txt[1]:SetText("")
+	self.con_txt[2]:SetText("")
+	self.text_item[1]:SetText("")
+	self.text_item[2]:SetText("")
+	self.cell_item[1]:Reset()
+	self.cell_item[2]:Reset()
+	self.con_txt_base:SetText("")
+	self.con_txt_new:SetText("")
+	self.btn_repair:Enable(false)
+	
+	local to_show = self.use_parts and true or false
+	self.cap[2]:Show(to_show)
+	self.b_inv[2]:Show(to_show)
+	self.b_item[2]:Show(to_show)
+	self.text_item[2]:Show(to_show)
+	self.con_txt[2]:Show(to_show)
+	self.CC[2]:Show(to_show)
+	
+	-- Set Repair kit icon
+	utils_xml.set_upgr_icon(self.obj, self.section, self.box_item_main, self.box_item_main_temp)
+	
+	-- Set Repair kit name
+	self.cap_menu:SetText(ui_item.get_sec_name(self.section))
+	
+	-- Show damaged items
+	self:InitInventory(1)
+
+	-- Hide active item
+	actor_effects.toggle_active_slot(0) 
+	
+	-- Play sound
+	if (self.repair_frame == "ui_itm_repair_1") or (self.repair_frame == "ui_itm_repair_2") then
+		utils_obj.play_sound("interface\\inv_zipper_open")
+	else
+		utils_obj.play_sound("interface\\inv_briefcase_light_open")
+	end
+end
+
+local str_tbl = {}
+
+
+gc = game.translate_string
+
+
+function refresh_strings()
+	str_tbl.workshop_tool = gc("st_itm_desc_workshop_tool")
+	str_tbl.repair_bonus = gc("st_itm_desc_outfit_repair_bonus")
+	str_tbl.repair_base_con = gc("st_itm_desc_repair_base_con")
+	str_tbl.repair_min_con = gc("st_itm_desc_repair_min_con")
+	str_tbl.require_tool = gc("st_itm_desc_outfit_required_tool")
+	str_tbl.repair_match = gc("st_itm_desc_repair_match")
+end
+
+math_ceil = math.ceil
+local clr_o  = utils_xml.get_color("d_orange")
+local clr_1  = utils_xml.get_color("ui_gray_2")
+local clr_2  = utils_xml.get_color("ui_gray_1")
+BuildFooter = ui_item.build_desc_footer
+-- Override from UI
+function ui_item.build_desc_footer(obj, sec, str)
+    if not ini_custom_repair:section_exist(sec) then return BuildFooter(obj, sec, str) end
+    
+	str = str or gc(ini_sys:r_string_ex(sec,"description"))
+	if (not str) then return "" end
+	
+	local _str = ""
+	if is_empty(str_tbl) then
+		refresh_strings()
+	end
+	-- Repair base condition
+	local repair_base = get_prop(sec,"repair_add_condition", 2)
+	if repair_base then
+		_str = _str .. clr_o .. "  ".. gc("st_dot") .." " .. clr_1 .. " " .. str_tbl.repair_base_con .. ": " .. clr_2 .. " +" .. tostring(math_ceil(repair_base*100)) .. "% \\n"
+	end
+	
+	-- Repair min condition
+	local repair_min = get_prop(sec,"repair_min_condition", 2)
+	if repair_min then
+		_str = _str .. clr_o .. "  ".. gc("st_dot") .." " .. clr_1 .. " " .. str_tbl.repair_min_con .. ": " .. clr_2 .. " " .. tostring(math_ceil(repair_min*100)) .. "% \\n"
+	end
+	
+	-- Repair bonus part
+	local repair_bonus = get_prop(sec,"repair_part_bonus", 2)
+	if repair_bonus then
+		_str = _str .. clr_o .. "  ".. gc("st_dot") .." " .. clr_1 .. " " .. str_tbl.repair_bonus .. ": " .. clr_2 .. " +" .. tostring(math_ceil(repair_bonus*100)) .. "% \\n"
+	end
+	
+	-- Repair match parts
+	local is_part_match = get_prop(sec,"repair_parts_match", 1)
+	if is_part_match then
+		_str = _str .. clr_b .. "  ".. gc("st_dot") .." " .. clr_1 .. " " .. str_tbl.repair_match .. " \\n"
+	end
+	
+	-- Workshop tool
+	local is_workshop_tool = get_prop(sec,"workshop_tool", 1)
+	if is_workshop_tool then
+		_str = _str .. clr_p .. "  ".. gc("st_dot") .." " .. clr_1 .. " " .. str_tbl.workshop_tool .. " \\n"
+	end
+	
+	str = str .. _str .. " \\n"
+    return str
+end
+ParseList = _G.parse_list
+local override_secs = {
+    repair_parts_sections = true,
+    repair_only = true,
+    repair_parts_sections = true
+}
+function _G.parse_list(ini, key, val, convert)
+    local ini_to_use = (override_secs[val] and ini_custom_repair:section_exist(key) and ini_custom_repair:r_string_ex(key, val)) and ini_custom_repair or ini
+    return ParseList(ini_to_use, key, val, convert)
+end
+
+function on_game_start()
+	refresh_strings()
+
+	RegisterScriptCallback("on_localization_change",refresh_strings)
+end 
