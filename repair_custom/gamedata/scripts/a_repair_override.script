@@ -6,11 +6,11 @@ function get_prop(section, prop, type)
     type = type or 0
     local ini_to_check = ini_custom_repair:section_exist(section) and ini_custom_repair or ini_sys
     if type == 0 then
-        return ini_to_check:r_string_ex(section, prop) or ""
+        return ini_to_check:r_string_ex(section, prop) or ini_sys:r_string_ex(section, prop, "")
     elseif type == 1 then
-        return ini_to_check:r_bool_ex(section, prop) or false
+        return ini_to_check:r_bool_ex(section, prop) or ini_sys:r_bool_ex(section, prop, false)
     else
-        return ini_to_check:r_float_ex(section, prop) or 0
+        return ini_to_check:r_float_ex(section, prop) or ini_sys:r_float_ex(section, prop, 0)
     end
 end
 
