@@ -94,6 +94,7 @@ math_ceil = math.ceil
 local clr_o  = utils_xml.get_color("d_orange")
 local clr_1  = utils_xml.get_color("ui_gray_2")
 local clr_2  = utils_xml.get_color("ui_gray_1")
+local clr_p  = utils_xml.get_color("d_purple")
 BuildFooter = ui_item.build_desc_footer
 -- Override from UI
 function ui_item.build_desc_footer(obj, sec, str)
