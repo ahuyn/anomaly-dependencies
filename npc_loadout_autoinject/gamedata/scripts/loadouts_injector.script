@@ -17,38 +17,40 @@ function preload()
 
     custom_loadouts.meta = {}
     ini_npc_loadouts:section_for_each(function(section)
-        local loadout = ini_npc_loadouts:r_string_ex(section, "loadout_sec")
+        local loadouts = ini_npc_loadouts:r_string_ex(section, "loadout_sec")
+        loadouts = str_explode(loadouts, ",")
         local weapons = ini_npc_loadouts:r_string_ex(section, "weapons_sec")
         -- skip if loadout/weapons not defined (bad section)
-        if not loadout or not weapons then return end
+        if is_empty(loadouts) or not weapons then return end
         -- if not ini:section_exist(loadout) then return end
         if not ini_wep_loadouts:section_exist(weapons) then return end
-        if not custom_loadouts[loadout] then custom_loadouts[loadout] = {} end
-        if not custom_loadouts.meta[loadout] then custom_loadouts.meta[loadout] = {} end
-        local meta_tbl = custom_loadouts.meta[loadout] or {}
-        local meta_count = meta_tbl.count or (ini:line_count(loadout)) or 0
         local n = ini_wep_loadouts:line_count(weapons)
-		cnt = 0
-        for i=0,n-1 do
-            local _, id, value = ini_wep_loadouts:r_line_ex(weapons,i)
-			tmp = str_explode(id,":")
-			if tmp and tmp[1] and ini_sys:section_exist(tmp[1]) then
-				cnt = cnt + 1
-				custom_loadouts[loadout][cnt] = {}
-				custom_loadouts[loadout][cnt].sec = tmp[1]
-				custom_loadouts[loadout][cnt].attachment = tmp[2] or "0"
-				custom_loadouts[loadout][cnt].ammo_type = tmp[3] or "0"
-				custom_loadouts[loadout][cnt].chance = tonumber(tmp[4]) or 50
-			else
-				printe("! ERROR: NPC Loadouts | something is wrong in [%s] - %s", section, tmp[1])
-			end
+        for k,loadout in pairs(loadouts) do
+            if not custom_loadouts[loadout] then custom_loadouts[loadout] = {} end
+            if not custom_loadouts.meta[loadout] then custom_loadouts.meta[loadout] = {} end
+            local meta_tbl = custom_loadouts.meta[loadout] or {}
+            local meta_count = meta_tbl.count or (ini:line_count(loadout)) or 0
+            for i=0,n-1 do
+                local _, id, value = ini_wep_loadouts:r_line_ex(weapons,i)
+                tmp = str_explode(id,":")
+                if tmp and tmp[1] and ini_sys:section_exist(tmp[1]) then
+                    l = custom_loadouts[loadout]
+                    l[#l+1] = {}
+                    l[#l].sec = tmp[1]
+                    l[#l].attachment = tmp[2] or "0"
+                    l[#l].ammo_type = tmp[3] or "0"
+                    l[#l].chance = tonumber(tmp[4]) or 50
+                else
+                    printe("! ERROR: NPC Loadouts | something is wrong in [%s] - %s", section, tmp[1])
+                end
+            end
+            -- add the total weapons in this loadout
+            meta_tbl.count = meta_count + n
+            if ini_npc_loadouts:r_bool_ex(section, "ignore_vanilla") then
+                meta_tbl.ignore = true
+            end
+            custom_loadouts.meta[loadout] = meta_tbl
         end
-        -- add the total weapons in this loadout
-        meta_tbl.count = meta_count + n
-        if ini_npc_loadouts:r_bool_ex(loadout, "ignore_vanilla") then
-            meta_tbl.ignore = true
-        end
-        custom_loadouts.meta[loadout] = meta_tbl
     end)
 end
 
@@ -69,7 +71,7 @@ function xrs_rnd_npc_loadout.create_item_on_npc(se_npc, squad_name, comm, rank, 
         CreateItem(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
         return
     end
-    local to_pick = custom_loadouts.meta[slot].ignore and  #custom_loadouts[slot] or custom_loadouts.meta[slot].count
+    local to_pick = custom_loadouts.meta[slot].ignore and #custom_loadouts[slot] or custom_loadouts.meta[slot].count
     local pick = math.random(to_pick)
     if pick > #custom_loadouts[slot] then
         CreateItem(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
