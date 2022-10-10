@@ -141,6 +141,9 @@ function ui_item.build_desc_footer(obj, sec, str)
 	str = str .. _str .. " \\n"
     return str
 end
+
+
+
 ParseList = _G.parse_list
 local override_secs = {
     repair_parts_sections = true,
@@ -148,12 +151,28 @@ local override_secs = {
     repair_parts_sections = true
 }
 function _G.parse_list(ini, key, val, convert)
+	printf("Parsing key %s, val %s", key, val)
     local ini_to_use = (override_secs[val] and ini_custom_repair:section_exist(key) and ini_custom_repair:r_string_ex(key, val)) and ini_custom_repair or ini
     return ParseList(ini_to_use, key, val, convert)
 end
 
+-- mother fuck
+
+GetList = _G.GetItemList
+function _G.GetItemList(typ)
+	list = GetList(typ)
+	if typ == "repair" then
+		for k,v in pairs(list) do
+			if ini_custom_repair:section_exist(k) then
+				list[k] = parse_list(ini_custom_repair, k, "repair_only", true)
+			end
+		end
+	end
+	return list
+end
+
+
 function on_game_start()
 	refresh_strings()
-
 	RegisterScriptCallback("on_localization_change",refresh_strings)
 end 
