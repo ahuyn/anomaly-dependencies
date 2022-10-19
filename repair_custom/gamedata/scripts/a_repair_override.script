@@ -163,7 +163,7 @@ function _G.GetItemList(typ)
 	list = GetList(typ)
 	if typ == "repair" then
 		for k,v in pairs(list) do
-			if ini_custom_repair:section_exist(k) then
+			if ini_custom_repair:section_exist(k) and ini_custom_repair:r_string_ex(k, "repair_only") then
 				list[k] = parse_list(ini_custom_repair, k, "repair_only", true)
 			end
 		end
