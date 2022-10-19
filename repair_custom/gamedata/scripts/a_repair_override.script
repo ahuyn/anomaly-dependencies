@@ -151,7 +151,7 @@ local override_secs = {
     repair_parts_sections = true
 }
 function _G.parse_list(ini, key, val, convert)
-	printf("Parsing key %s, val %s", key, val)
+	--printf("Parsing key %s, val %s", key, val)
     local ini_to_use = (override_secs[val] and ini_custom_repair:section_exist(key) and ini_custom_repair:r_string_ex(key, val)) and ini_custom_repair or ini
     return ParseList(ini_to_use, key, val, convert)
 end
