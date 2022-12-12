@@ -1,13 +1,55 @@
 -- custom loadouts 
-local custom_loadouts = {}
+local custom_loadouts = {
+    name = {},
+    squad = {},
+    visual = {}
+}
+local custom_weapons = {}
 local ini_npc_loadouts = ini_file("loadouts\\npc_importer.ltx")
 local ini_wep_loadouts = ini_file("loadouts\\wep_importer.ltx")
-local ini = ini_file("items\\settings\\npc_loadouts\\npc_loadouts.ltx")
+local ini_loadouts = ini_file("items\\settings\\npc_loadouts\\npc_loadouts.ltx")
 local scope_chance = {}
+local MAX_ITER = 10
+local factions = {
+    ["stalker"] = true,
+	["csky"] = true,
+	["dolg"] = true,
+	["ecolog"] = true,
+	["freedom"] = true,
+	["killer"] = true,
+	["army"] = true,
+	["bandit"]= true,
+	["monolith"] = true,
+	["renegade"] = true,
+    ["isg"] = true,
+    ["zombied"] = true,
+    ["greh"] = true
+}
+
+local ranks = {
+	["novice"]           = true,
+	["trainee"]          = true,
+	["experienced"]      = true,
+	["professional"]     = true,
+	["veteran"]          = true,
+	["expert"]           = true,
+	["master"]           = true,
+	["legend"]           = true,
+}
+
+local slots = {
+
+	["primary"]           = "primary",
+	["p"]          = "primary",
+	["secondary"]      = "secondary",
+	["s"]     = "secondary",
+	["extra"]          = "extra",
+	["e"]           = "extra",
+}
 
 function preload()
 
-    tmp = ini:r_string_ex("settings","scope_chance")
+    tmp = ini_loadouts:r_string_ex("settings","scope_chance")
 	if tmp then
 		tmp = str_explode(tmp,",")
 		for i=1,#tmp do
@@ -22,139 +64,187 @@ function preload()
         local weapons = ini_npc_loadouts:r_string_ex(section, "weapons_sec")
         -- skip if loadout/weapons not defined (bad section)
         if is_empty(loadouts) or not weapons then return end
-        -- if not ini:section_exist(loadout) then return end
         if not ini_wep_loadouts:section_exist(weapons) then return end
         local n = ini_wep_loadouts:line_count(weapons)
-        for k,loadout in pairs(loadouts) do
-            if not custom_loadouts[loadout] then custom_loadouts[loadout] = {} end
-            if not custom_loadouts.meta[loadout] then custom_loadouts.meta[loadout] = {} end
-            local meta_tbl = custom_loadouts.meta[loadout] or {}
-            local meta_count = meta_tbl.count or (ini:line_count(loadout)) or 0
-            for i=0,n-1 do
-                local _, id, value = ini_wep_loadouts:r_line_ex(weapons,i)
+        
+        for i=0,n-1 do
+            local _, id, value = ini_wep_loadouts:r_line_ex(weapons,i)
+            --printf("Adding custom weapon %s", id)
+            if not custom_weapons[id] then
                 tmp = str_explode(id,":")
-                if tmp and tmp[1] and ini_sys:section_exist(tmp[1]) then
-                    l = custom_loadouts[loadout]
-                    l[#l+1] = {}
-                    l[#l].sec = tmp[1]
-                    l[#l].attachment = tmp[2] or "0"
-                    l[#l].ammo_type = tmp[3] or "0"
-                    l[#l].chance = tonumber(tmp[4]) or 50
-                else
-                    printe("! ERROR: NPC Loadouts | something is wrong in [%s] - %s", section, tmp[1])
+                if tmp and tmp[1] and ini_sys:section_exist(tmp[1]) then  
+                    custom_weapons[id] = {}
+                    custom_weapons[id].sec = tmp[1]
+                    custom_weapons[id].attachment = tmp[2] or "0"
+                    custom_weapons[id].ammo_type = tmp[3] or "0"
+                    custom_weapons[id].chance = tonumber(tmp[4]) or 50
                 end
             end
-            -- add the total weapons in this loadout
-            meta_tbl.count = meta_count + n
-            if ini_npc_loadouts:r_bool_ex(section, "ignore_vanilla") then
-                meta_tbl.ignore = true
-            end
-            custom_loadouts.meta[loadout] = meta_tbl
+        end
+        for k,loadout in pairs(loadouts) do
+            add_weapons_to_loadout(loadout, weapons)
         end
     end)
+end
+
+function add_weapons_to_loadout(loadout, weapons)
+    --printf("Adding %s section of weapons to %s", weapons, loadout)
+    tokens = str_explode(loadout, "_")
+    if not (#tokens == 2 or #tokens == 3) then 
+        --printf("Invalid length")
+        return end
+    if not tokens[3] then tokens[3] = "primary" end
+    if not factions[tokens[1]] then 
+        --printf("%s not faction", tokens[1])
+        return end
+    if not ranks[tokens[2]] then 
+        --printf("%s not rank", tokens[2])
+        return end
+    if not slots[tokens[3]] then 
+        --printf("%s not slot", tokens[3])
+        return end
+    faction, rank, slot = unpack(tokens)
+    slot = slots[slot]
+    if not custom_loadouts[faction] then custom_loadouts[faction] = {} end
+    if not custom_loadouts[faction][rank] then custom_loadouts[faction][rank] = {} end
+    if not custom_loadouts[faction][rank][slot] then custom_loadouts[faction][rank][slot] = {} end
+
+    local n = ini_wep_loadouts:line_count(weapons)
+    --printf("Adding %s weapons for %s %s %s", n, faction, rank, slot)
+    for i=0,n-1 do
+        local _, id, value = ini_wep_loadouts:r_line_ex(weapons,i)
+        if custom_weapons[id] then
+            l = custom_loadouts[faction][rank][slot]
+            l[#l+1] = id
+        end
+    end
+
+end
+
+function get_table(comm, rank, slot)
+    if not custom_loadouts[comm] then return {} end
+    if not custom_loadouts[comm][rank] then return {} end
+    return custom_loadouts[comm][rank][slot] or {}
 end
 
 CreateItem = xrs_rnd_npc_loadout.create_item_on_npc
 function xrs_rnd_npc_loadout.create_item_on_npc(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
 	-- Get loadout section
-	local loadout = ini:r_string_ex("loadouts_per_squad",squad_name) or ini:r_string_ex("loadouts_per_name",se_npc:section_name()) or ini:r_string_ex("loadouts_per_visual",visual) or (comm .. "_" .. rank)
-	if (not ini:section_exist(loadout)) then
+	local loadout = ini_loadouts:r_string_ex("loadouts_per_squad",squad_name) or ini_loadouts:r_string_ex("loadouts_per_name",se_npc:section_name()) or ini_loadouts:r_string_ex("loadouts_per_visual",visual) or (comm .. "_" .. rank)
+	if (not ini_loadouts:section_exist(loadout)) then
 		loadout = comm
-		if (not ini:section_exist(loadout)) then
+		if (not ini_loadouts:section_exist(loadout)) then
 			loadout = "default"
 		end
 	end
-	
+    
 	-- Get slot section
-	local slot = ini:r_string_ex(loadout,slot_type)
-    if not custom_loadouts[slot] then
+	local slot = ini_loadouts:r_string_ex(loadout,slot_type)
+    --printf("Reading entries for slot %s, for %s %s %s", slot, comm, rank, slot_type)	
+    local vanilla_loadout_entries = not (slot and ini_loadouts:section_exist(slot)) and 0 or ini_loadouts:line_count(slot)
+    local custom_tbl = get_table(comm, rank, slot_type)
+    if not custom_tbl or is_empty(custom_tbl) then
+        --printf("Defaulting to vanilla loadout")
         CreateItem(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
         return
     end
-    local to_pick = custom_loadouts.meta[slot].ignore and #custom_loadouts[slot] or custom_loadouts.meta[slot].count
-    local pick = math.random(to_pick)
-    if pick > #custom_loadouts[slot] then
-        CreateItem(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
-    else
-        -- repick based on chances
-        if #custom_loadouts[slot] > 1 then
-            pick = nil
-            iterations = 0
-            max_iter = 10
-            while not pick and iterations < max_iter do
-                local candidate = math.random(#custom_loadouts[slot])
-                if math.random(100) <= custom_loadouts[slot][candidate].chance then
-                    pick = candidate
-                    break
-                end
-                iterations = iterations + 1
+    -- randomly pick entries from this range
+    -- if the range is in vanilla loadout entries, roll from there
+    -- otherwise 
+    local to_pick = vanilla_loadout_entries + #custom_tbl
+    --printf("Picking from %s + %s entries", vanilla_loadout_entries, #custom_tbl)
+    local pick = nil
+    local iterations = 0
+    while not pick and iterations < MAX_ITER do
+        local p = math.random(to_pick)
+        if p > vanilla_loadout_entries then
+            local new_entry = p - vanilla_loadout_entries
+            local wpn = custom_weapons[custom_tbl[new_entry]]
+            if math.random(100) < wpn.chance then
+                pick = p
+                break
             end
-            if not pick then pick = math.random(#custom_loadouts[slot]) end
+        elseif math.random(100) < 50 then
+            pick = p
+            break
         end
+        iterations = iterations + 1
+    end
+    if not pick then pick = math.random(to_pick) end
+    local weapon_entry
+    if pick > vanilla_loadout_entries then
+        pick = pick - vanilla_loadout_entries
+        id = custom_tbl[pick]
+        if id then
+            weapon_entry = custom_weapons[id]
+        end
+    end
+    if weapon_entry then
+        create_item(se_npc, weapon_entry)
+    else
+        CreateItem(se_npc, squad_name, comm, rank, visual, player_id, slot_type)
+    end
+end
 
-        -- Give it to NPC based on data
-        local section = custom_loadouts[slot][pick].sec
-        local ammo_typ = custom_loadouts[slot][pick].ammo_type
-        local attachment = custom_loadouts[slot][pick].attachment        
-        -- Items
-        if (slot_type == "extra") then
-            alife_create_item(section, se_npc)
-            
-        -- Weapons
-        else
-            -- Add random scope
-            local cha = game_difficulties.get_eco_factor("scope_chance") or scope_chance[ game_difficulties.get_eco_factor("type") or 1 ]
-            cha = cha * 100
-            if ini_sys:line_exist(section,"scopes") and (math.random(100) <= cha) then
-                local scopes = parse_list(ini_sys, section, "scopes")
-                if scopes and (#scopes > 0) then
-                    local pick_scope = scopes[math.random(#scopes)]
-                    if pick_scope and ini_sys:section_exist(section .. "_" .. pick_scope) then
-                        section = section .. "_" .. pick_scope
-                    end
+function create_item(se_npc, item_data)
+    
+    local section = item_data.sec
+    local ammo_typ = item_data.ammo_type
+    local attachment = item_data.attachment        
+    -- Items
+    if (slot_type == "extra") then
+        alife_create_item(section, se_npc)
+    -- Weapons
+    else
+        -- Add random scope
+        local cha = game_difficulties.get_eco_factor("scope_chance") or scope_chance[ game_difficulties.get_eco_factor("type") or 1 ]
+        cha = cha * 100
+        if ini_sys:line_exist(section,"scopes") and (math.random(100) <= cha) then
+            local scopes = parse_list(ini_sys, section, "scopes")
+            if scopes and (#scopes > 0) then
+                local pick_scope = scopes[math.random(#scopes)]
+                if pick_scope and ini_sys:section_exist(section .. "_" .. pick_scope) then
+                    section = section .. "_" .. pick_scope
                 end
             end
-            
-            local se_wpn = alife_create_item(section, se_npc)
-            if (se_wpn) then
-                local ammos = parse_list(ini_sys, section, "ammo_class")
+        end
+        local se_wpn = alife_create_item(section, se_npc)
+        if (se_wpn) then
+            local ammos = parse_list(ini_sys, section, "ammo_class")
 
-                local ct = ammos and #ammos
-                local ammo_type = (ammos and ammo_typ and ammo_typ == "r" and ct and math.random(0,ct-1)) or (ammos and ammo_typ and tonumber(ammo_typ)) or 0
-                local ammo_section = ammo_type and ammos[ammo_type+1]
+            local ct = ammos and #ammos
+            local ammo_type = (ammos and ammo_typ and ammo_typ == "r" and ct and math.random(0,ct-1)) or (ammos and ammo_typ and tonumber(ammo_typ)) or 0
+            local ammo_section = ammo_type and ammos[ammo_type+1]
 
-                if not (ammo_section) then
-                    ammo_type = 0
-                    ammo_section = ammo_type and ammos[ammo_type+1]
-                    printe("! ERROR: NPC Loadouts | wrong ammo_type set for [%s], missing value in ammo_class", section)
-                end
+            if not (ammo_section) then
+                ammo_type = 0
+                ammo_section = ammo_type and ammos[ammo_type+1]
+                printe("! ERROR: NPC Loadouts | wrong ammo_type set for [%s], missing value in ammo_class", section)
+            end
+            if (attachment or ammo_typ) then
+                local data = utils_stpk.get_weapon_data(se_wpn)
 
-
-                if (attachment or ammo_typ) then
-                    local data = utils_stpk.get_weapon_data(se_wpn)
-
-                    local flag = tonumber(attachment) or 0
-                    if (attachment == "r") then
-                        flag = 0
-                        if (utils_data.read_from_ini(nil,section,"scope_status","float",nil)) then
-                            flag = flag + 1
-                        end
-
-                        if (utils_data.read_from_ini(nil,section,"grenade_launcher_status","float",nil)) then
-                            flag = flag + 2
-                        end
-
-                        if (utils_data.read_from_ini(nil,section,"silencer_status","float",nil)) then
-                            flag = flag + 4
-                        end
-
-                        flag = math.random(0,flag)
+                local flag = tonumber(attachment) or 0
+                if (attachment == "r") then
+                    flag = 0
+                    if (utils_data.read_from_ini(nil,section,"scope_status","float",nil)) then
+                        flag = flag + 1
                     end
 
-                    data.addon_flags = flag
-                    data.ammo_type = ammo_type
-                    utils_stpk.set_weapon_data(data,se_wpn)
+                    if (utils_data.read_from_ini(nil,section,"grenade_launcher_status","float",nil)) then
+                        flag = flag + 2
+                    end
+
+                    if (utils_data.read_from_ini(nil,section,"silencer_status","float",nil)) then
+                        flag = flag + 4
+                    end
+
+                    flag = math.random(0,flag)
                 end
+
+                data.addon_flags = flag
+                data.ammo_type = ammo_type
+                utils_stpk.set_weapon_data(data,se_wpn)
             end
         end
     end
