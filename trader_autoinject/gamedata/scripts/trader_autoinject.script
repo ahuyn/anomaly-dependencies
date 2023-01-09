@@ -48,8 +48,10 @@ function trade_manager.update(npc, force_refresh)
     CreateTimeEvent("custom_update"..npc:id(), "custom_resupply"..npc:id(), 0.1, timed_update, npc)
 end
 
+-- Add easier to trace callback
 function timed_update(npc)
     update(npc)
+    SendScriptCallback("npc_on_restock",npc)
     return true
 end
 
@@ -194,4 +196,8 @@ function spawn_items(npc, to_spawn, check_existing)
             alife_create_item(k, npc)
         end
     end
+end
+
+function on_game_start()
+    AddScriptCallback("trader_on_restok")
 end
