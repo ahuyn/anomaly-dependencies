@@ -199,5 +199,5 @@ function spawn_items(npc, to_spawn, check_existing)
 end
 
 function on_game_start()
-    AddScriptCallback("trader_on_restok")
+    AddScriptCallback("trader_on_restock")
 end
