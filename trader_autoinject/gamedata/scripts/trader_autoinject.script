@@ -51,7 +51,7 @@ end
 -- Add easier to trace callback
 function timed_update(npc)
     update(npc)
-    SendScriptCallback("npc_on_restock",npc)
+    SendScriptCallback("trader_on_restock",npc)
     return true
 end
 
