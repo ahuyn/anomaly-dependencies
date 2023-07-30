@@ -9,6 +9,7 @@ local new_art = {}
 -- just holds the new categories
 local new_cat = {}
 
+_g.ui_pda_autoinject = "blocked" --blocks this script under old name from being loaded. 
 function parse_cat()
     local ini_cat = ini_file("plugins\\encyclopedia_custom\\categories\\importer.ltx")
     ini_cat:section_for_each(function(section)
