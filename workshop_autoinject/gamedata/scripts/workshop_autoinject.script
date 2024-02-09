@@ -1,4 +1,4 @@
-local cr = {}
+cr = {}
 
 cr.added = {}
 cr.index_map = {}
@@ -6,7 +6,7 @@ cr.overrides = {}
 cr.new_sections = {}
 cr.deletions = {}
 
-local known_recipe = {}
+known_recipe = {}
 
 function print_dbg(text, ...)
 	if true then
@@ -148,8 +148,12 @@ function ui_workshop.UIWorkshopCraft:ListRecipes()
 	end
 end
 
+WSLoadRecipes = ui_workshop.UIWorkshopCraft.LoadRecipes
 function ui_workshop.UIWorkshopCraft:LoadRecipes()
-
+    if is_empty(cr.added) and is_empty(cr.overrides) then
+        WSLoadRecipes(self)
+        return
+    end
     -- Less parts on achievement
 	local ach = 0
 	if (game_achievements.has_achievement("artificer_eagerness")) then
@@ -222,9 +226,12 @@ function ui_workshop.UIWorkshopCraft:LoadRecipes()
 end
 
 
-
+UILoadRecipes = item_recipe.UIRecipe.LoadRecipes
 function item_recipe.UIRecipe:LoadRecipes()
-    
+    if is_empty(cr.added) and is_empty(cr.overrides) then
+        UILoadRecipes(self)
+        return
+    end
 	local ini_craft = itms_manager.ini_craft
 	
 	-- Less parts on achievement
@@ -273,32 +280,16 @@ function item_recipe.UIRecipe:LoadRecipes()
         end
     end
 end
+
+FuncRecipe = item_recipe.func_recipe
 function item_recipe.func_recipe(obj)
 	local sec = obj:section()
-    print_dbg("intercept recipe %s", sec)
-	if (not IsItem("recipe",sec)) then
-		return
-	end
-	
-	if (not ui_pda_encyclopedia_tab.is_unlocked_note("encyclopedia__notes_" .. sec)) then
-		SendScriptCallback("actor_on_interaction", "notes", nil, sec)
-		--alife_release(obj)
-	else
-		actor_menu.set_msg(1, game.translate_string("st_recipe_is_known"),3)
-	end
-	
     -- add to backup cache as well
     if not known_recipe[sec] then 
         print_dbg("Adding %s to backup cache", sec)
         known_recipe[sec] = true 
     end
-	-- effect
-	local hud = get_hud()
-	if (hud) then
-		hide_hud_inventory()
-	end
-	
-	item_recipe.start(sec)
+	FuncRecipe(obj)
 end
 
 --recipes, workshop section, table of requirements, achievement, item section 
@@ -394,6 +385,15 @@ end
 function load_state(mdata) 
 	known_recipe = mdata.known_recipe or {}
 end
+
+-- inject to ui
+-- local craft_exist = itms_manager.ini_craft.section_exist
+-- local craft_count = itms_manager.ini_craft.line_count
+-- local craft_line = itms_manager.ini_craft.r_line
+
+-- itms_manager.ini_craft.line_count = function(index)
+
+-- end
 
 function on_game_start()
 	RegisterScriptCallback("save_state",save_state)

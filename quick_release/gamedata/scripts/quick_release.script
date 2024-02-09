@@ -1,0 +1,60 @@
+local keep_items
+
+function eval(item)
+    if SYS_GetParam(1, item:section(), "quest_item") then return false end
+    if keep_items[item:section()] then return false end
+    if IsAmmo(item) and item_backpack.is_ammo_for_wpn(item:section()) then return false end
+    if db.actor:is_on_belt(item) or is_in_slot(item) then return false end
+    return true
+end
+
+
+function item_backpack.actor_on_item_use(obj)
+	local ini_stash = ini_file("items\\settings\\backpack_stash.ltx")
+	keep_items = utils_data.collect_section(ini_stash,"actor_backpack_keep_items",true)
+	if obj and (obj:section() == "itm_actor_backpack") then 
+		local backpack = db.actor:item_in_slot(13)
+		if backpack then
+			local actor = db.actor
+			local se_obj = alife_create("inv_backpack",actor:position(),actor:level_vertex_id(),actor:game_vertex_id())
+			if (se_obj) then
+				local txt = strformat(game.translate_string("st_itm_stash_of_character"), db.actor:character_name())
+				level.map_add_object_spot_ser(se_obj.id, "treasure", txt)
+				actor_menu.set_msg(1, game.translate_string("st_stash_created"),4)
+				
+				local m_data = alife_storage_manager.get_state()
+				if not (m_data.player_created_stashes) then 
+					m_data.player_created_stashes = {}
+				end
+				
+				m_data.player_created_stashes[se_obj.id] = backpack:section()
+				
+				local b_id = backpack:id()
+				alife_release(backpack)
+				
+				local function transfer_items(id)
+					local obj = level.object_by_id(id)
+					if (obj) then 
+						local function itr_inv(temp,item)
+                            if item:id() ~= b_id and eval(item) then
+                                db.actor:transfer_item(item,obj)
+                            end		
+						end
+	
+						db.actor:iterate_inventory(itr_inv)
+						return true
+					end			
+					return false
+				end
+				create_time_event(0,"actor_backpack",0,transfer_items,se_obj.id)
+			end
+		else
+			actor_menu.set_msg(1, game.translate_string("st_stash_no_backpack_found"),4)
+		end
+	end
+end
+
+function on_game_start()
+	keep_items = utils_data.collect_section(ini_stash,"actor_backpack_keep_items",true)
+
+end
